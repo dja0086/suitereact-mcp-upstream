@@ -1,34 +1,39 @@
 #!/usr/bin/env node
 // Deterministic AI-slop scanner for product marketing, fiction and docs.
 //
-//   node scan.mjs <file|dir|-> [...] [--mode marketing|creative|docs] [--json] [--strict]
+//   node scan.mjs <file|dir|-> [...] [--mode marketing|creative|docs]
+//                 [--channel social] [--rhythm] [--json] [--strict]
 //
 // Scans .md/.mdx/.txt/.html files and the string values of .json files.
-// Skips code fences, inline code, shell commands and licence files.
+// Skips code fences, inline code, CLI commands (a tool name followed by
+// arguments that carry a flag, path or colon) and licence files.
 // Curly quotes and apostrophes are normalized before matching.
-// Exit codes: 0 clean, 1 a BAN remains (or a WARN with --strict), 2 usage error.
-// The last line of output is always "<mode>: N BAN, M WARN"; if it is missing,
-// the scan did not run. Rule sources are in references/rules.md.
+//   --channel social  also BANs Markdown, which plain-text posts show literally
+//   --rhythm          prints words per sentence and WARNs on flat runs
+// Exit codes: 0 clean, 1 a BAN remains (or any finding with --strict),
+// 2 usage error or missing file. The last line is always
+// "<mode>: N BAN, M WARN"; if it is missing, the scan did not run.
+// Rule sources are in references/rules.md.
 import fs from 'node:fs';
 import path from 'node:path';
 
 const W = s => new RegExp(`\\b(?:${s})\\b`, 'giu');
+const Wcase = s => new RegExp(`\\b(?:${s})\\b`, 'gu'); // case-sensitive: names
 const P = s => new RegExp(s, 'giu');
-const MKT_DOCS = 'marketing,docs';
+const MD = 'marketing,docs';
+const EM_DASH =
+  '(?<=[\\p{L}\\p{N}.,;:)"\'*?!])\\s?—\\s?(?=[\\p{L}\\p{N}("\'*])|^\\s*—\\s?(?=[\\p{L}"\'])|(?<=\\p{L})\\s–\\s(?=\\p{L})|(?<=\\p{L})\\s--\\s(?=\\p{L})';
 
-// [id, severity, modes ('*' = all), regex, message]
+// [id, severity, modes ('*' = all), regex, message, options]
+// options.last: only on the last prose line of a file; options.channel: only with --channel <x>
 const RULES = [
-  // ---- punctuation and glyphs (all modes) ----
-  // A dash between words, after closing quotes, or opening a line of dialogue is punctuation.
-  // A lone dash in an empty table cell is not.
+  // ---- punctuation and glyphs ----
   [
     'em-dash',
     'BAN',
     '*',
-    P(
-      '(?<=[\\p{L}\\p{N}.,;:)"\'*?!])\\s?—\\s?(?=[\\p{L}\\p{N}("\'*])|^\\s*—\\s?(?=[\\p{L}"\'])|(?<=\\p{L})\\s–\\s(?=\\p{L})|(?<=\\p{L})\\s--\\s(?=\\p{L})'
-    ),
-    'Dash used as punctuation. Use a period, comma, colon or parentheses.',
+    P(EM_DASH),
+    'Dash used as punctuation. Use a period, comma, colon or parentheses. (In fiction, a dash before a closing quote marks cut-off speech and is allowed.)',
   ],
   [
     'emoji',
@@ -68,16 +73,33 @@ const RULES = [
   [
     'exclamation-stack',
     'WARN',
-    '*',
+    MD,
     P('!{2,}|![^.!?\\n]*!'),
     'More than one exclamation mark nearby.',
+  ],
+  [
+    'exclamation-stack',
+    'WARN',
+    'creative',
+    P('!{2,}'),
+    'Stacked exclamation marks.',
+  ],
+  [
+    'markdown-in-plain-text',
+    'BAN',
+    '*',
+    P(
+      '\\*\\*[^*]+\\*\\*|(?<![\\w*])\\*[^*\\s][^*]*\\*(?![\\w*])|(?<!\\w)_[^_\\s][^_]*_(?!\\w)|^#{1,6}\\s|^\\s*[-*+]\\s|`'
+    ),
+    'Markdown in a plain-text post shows as typed characters. Remove it.',
+    { channel: 'social' },
   ],
 
   // ---- assistant voice and hedging ----
   [
     'sycophant-opener',
     'BAN',
-    MKT_DOCS,
+    MD,
     P(
       '(?:^|[.!?]\\s+)(?:great question|certainly|absolutely|of course|i hope this helps|happy to help)\\b'
     ),
@@ -86,35 +108,43 @@ const RULES = [
   [
     'hedge-stack',
     'BAN',
-    '*',
+    MD,
     W(
       "it(?:'s| is) (?:worth|important to) (?:noting|note|mention(?:ing)?|consider(?:ing)?)|it should be noted|needless to say"
     ),
     'Hedging stack. State the point.',
   ],
   [
+    'hedge-stack',
+    'WARN',
+    'creative',
+    W(
+      "it(?:'s| is) (?:worth|important to) (?:noting|note|mention(?:ing)?|consider(?:ing)?)|it should be noted|needless to say"
+    ),
+    "Hedging stack. Fine in a character's dialogue; cut it from narration.",
+  ],
+  [
     'hedge-phrase',
     'BAN',
-    MKT_DOCS,
+    MD,
     W('at the end of the day|when it comes to'),
     'Hedging phrase. State the point.',
   ],
   [
     'filler-transition',
     'WARN',
-    MKT_DOCS,
+    MD,
     P(
       '(?:^|[.!?]\\s+)(?:furthermore|moreover|additionally|in conclusion|ultimately|in summary|that said|notably|importantly),'
     ),
     'Filler transition at sentence start.',
   ],
 
-  // ---- product marketing (devsloka list, extended) ----
-  // Marketing and docs only: several of these words are literal in fiction (unlock a cage, leverage a crate lid).
+  // ---- product marketing (devsloka list, extended); several words are literal in fiction ----
   [
     'hype-phrase',
     'BAN',
-    MKT_DOCS,
+    MD,
     W(
       "unlock(?:s|ed|ing)?|unleash(?:es|ed|ing)?|supercharg\\w*|revolutioni[sz]\\w*|seamless(?:ly)?|effortless(?:ly)?|elevat(?:e|es|ed|ing)|empower\\w*|game[- ]chang\\w*|cutting[- ]edge|next[- ]level|leverag\\w*|harness the power|in today's fast[- ]paced|to the next level|transform your|all[- ]in[- ]one|streamlin\\w*|boost your productivity|world[- ]class|best[- ]in[- ]class|robust|powerful yet simple|built for the future|your journey|say goodbye to|look no further|like never before|at your fingertips|reimagin\\w*|lorem ipsum|john doe|delve|delving|utili[sz]e|synerg\\w*|paradigm shift|state[- ]of[- ]the[- ]art|future[- ]proof|one[- ]stop shop|mission[- ]critical|dive (?:deep|into)|deep dive|unparalleled|groundbreaking|innovative solution|holistic"
     ),
@@ -134,7 +164,7 @@ const RULES = [
     'WARN',
     'marketing',
     W(
-      'get started|learn more|click here|find out more|discover more|sign up today'
+      'get started|learn more|click here|find out more|discover more|discover what|sign up today'
     ),
     'Generic CTA. Name the action and its object (e.g. "Deploy data-viewer").',
   ],
@@ -150,32 +180,32 @@ const RULES = [
     'WARN',
     'marketing,creative',
     P(
-      "\\bnot (?:just|only|merely) [^.,;]{1,40}[,;]? but\\b|\\b(?:it|this|that)(?:'s| is|n't| isn't) (?:not )?(?:just |only |about )?[^.,;]{1,40}[.,;] (?:it|this|that)(?:'s| is)\\b|\\bmore than just\\b"
+      "\\bnot (?:just|only|merely) [^.,;]{1,40}[,;]? but\\b|\\b(?:it|this|that)(?:'s| is| was|n't| isn't| wasn't) (?:not )?(?:just |only |about )?[^.,;]{1,40}[.,;] (?:it|this|that)(?:'s| is| was)\\b|\\bmore than just\\b"
     ),
     '"Not just X, but Y" / "It\'s not X. It\'s Y." contrast template.',
   ],
   [
     'filler-word',
     'WARN',
-    MKT_DOCS,
+    MD,
     W(
-      'very|really|simply|just|easy|easily|simple|quick(?:ly)?|basically|actually|literally'
+      'very|really|simply|just|easy|easily|simple|quick(?:ly)?|basically|actually|literally|finally'
     ),
     'Filler or effort-judging word. Describe the concrete thing.',
   ],
   [
     'weasel-word',
     'WARN',
-    MKT_DOCS,
-    W(
-      'significantly|many|various|numerous|often|typically|generally|a wide range of|a variety of|countless|near[- ]zero|lightning[- ]fast|blazing(?:ly)?[- ]fast'
+    MD,
+    P(
+      '\\b(?:significantly|(?<!how )many|various|numerous|often|typically|generally|a wide range of|a variety of|countless|near[- ]zero|lightning[- ]fast|blazing(?:ly)?[- ]fast)\\b'
     ),
     'Vague quantity. Give a number.',
   ],
   [
     'datasheet-verb',
     'WARN',
-    MKT_DOCS,
+    MD,
     W(
       'provides|is configurable|offers a|allows (?:you|users) to|enables (?:you|users) to|is designed to|helps (?:you|users) to'
     ),
@@ -191,7 +221,7 @@ const RULES = [
   [
     'rhetorical-q',
     'WARN',
-    MKT_DOCS,
+    MD,
     P(
       "(?:^|[.!]\\s+)(?:ever wondered|what if|why settle|tired of|wouldn't it be|imagine)\\b[^?]*\\?"
     ),
@@ -199,20 +229,31 @@ const RULES = [
   ],
 
   // ---- fiction (compiled list; see references/rules.md) ----
+  // BAN: multi-word stock phrasing that is almost never literal.
   [
     'fiction-cliche',
     'BAN',
     'creative',
     W(
-      "tapestry|testament to|symphony of|a dance of|in the heart of|little did \\w+ know|breath (?:he|she|they|i|we) (?:didn't|hadn't|did not|had not) (?:know|realiz\\w*|realis\\w*)|shivers? (?:ran |went |crept )?(?:up|down) (?:his|her|their|my) spine|palpable|ministrations|the weight of (?:it all|the world|his words|her words|their words)|something shifted|time seemed to (?:stop|slow)|eyes (?:sparkl|glint|twinkl)\\w*|a smile (?:tugged|played) at|let out a (?:long |slow |shaky |deep )?breath|unspoken (?:understanding|promise)|the air (?:was )?thick with|(?:scent|smell|smelled|smelling|tang|whiff|stink) of [^.]{0,25}ozone|barely above a whisper|echoes? of (?:the |a )?past|whispers? of (?:the |a )?(?:past|wind|memor\\w*|secrets?|forgotten)|a pang of|knuckles (?:turned )?white|would change everything|nothing would ever be the same|forgotten memories|the silence was deafening|deafening silence|a wave of (?:relief|panic|nausea|calm|dread|guilt) (?:washed|swept) over|(?:fear|dread|panic|terror) gripped|heart (?:pounded|hammered|raced|thundered) in (?:his|her|their|my) chest|(?:some|certain) (?:doors|things|secrets) are (?:meant|better) (?:to|left)"
+      "testament to|a dance of|little did \\w+ know|unbeknownst to|breath (?:he|she|they|i|we) (?:didn't|hadn't|did not|had not) (?:know|realiz\\w*|realis\\w*)|(?:didn't|hadn't|did not|had not) realiz\\w* (?:he|she|they|i|we)(?:'d| had)? been holding (?:his|her|their|my|a) breath|(?:shivers?|a chill) (?:ran |went |crept |raced )?(?:up|down) (?:his|her|their|my) spine|ministrations|the weight of (?:it all|the world|his words|her words|their words)|something (?:inside|in|within) (?:her|him|them|me) shifted|time (?:seemed to )?(?:stop(?:ped)?|stood still|slow(?:ed)?)|eyes (?:sparkl|twinkl)\\w*|a smile (?:tugged|played) at|unspoken (?:understanding|promise)|the air (?:was )?thick with|barely above a whisper|barely audible|echoes? of (?:the |a )?past|whispers? of (?:the |a )?(?:past|wind|memor\\w*|secrets?|forgotten)|a pang of|knuckles (?:turned |were |went |grew )?white|would (?:change|alter) (?:everything|the course of)|nothing would ever be the same|forgotten memories|the silence was (?:deafening|a living thing)|deafening silence|silence stretched|a wave of \\w+ (?:washed|swept) over|(?:fear|dread|panic|terror) (?:gripped|pooled)|dread pooled|heart (?:was )?(?:pounding|hammering|racing|thundering)|heart (?:pounded|hammered|raced|thundered) (?:in|against)|breath hitched|a muscle (?:ticked|twitched|jumped) in (?:his|her|their) jaw|somewhere(?: in the distance)?, a dog barked|(?:some|certain) (?:doors|things|secrets) are (?:meant|better) (?:to|left)"
     ),
     'Stock fiction phrase. Use a specific, observed detail.',
+  ],
+  // WARN: words with ordinary literal uses (a woven tapestry, a palpable mass, the smell of ozone after lightning).
+  [
+    'fiction-cliche-word',
+    'WARN',
+    'creative',
+    W(
+      'tapestry|symphony of|in the heart of|palpable|something shifted|eyes glint\\w*|(?:scent|smell|smelled|smelling|tang|whiff|stink) of [^.]{0,25}ozone|let out a (?:long |slow |shaky |deep )?breath'
+    ),
+    'Often a model-fiction tell. Keep it only if literal (a woven tapestry, a medical exam) and say so.',
   ],
   [
     'fiction-names',
     'WARN',
     'creative',
-    W(
+    Wcase(
       'Elara|Kael|Lyra|Seraphina|Aria Blackwood|Elias Thorne|Eldoria|Thorne|Mara Chen|Kira Voss|Voss|Sable|Zephyr'
     ),
     'Default model-generated name. Choose a name with a reason.',
@@ -231,7 +272,8 @@ const RULES = [
     P(
       '(?:^|[.!?]\\s+)(?:and (?:in that moment|somehow)|in the end|perhaps,? (?:that|this) was|and (?:that|this) was enough)\\b'
     ),
-    'Summarising/moral beat. End on an image or action.',
+    'Summarising or moral closing beat. End on an image or action.',
+    { last: true },
   ],
 ];
 
@@ -242,17 +284,25 @@ const opt = n => {
   return i >= 0 ? args[i + 1] : undefined;
 };
 const mode = opt('mode') || 'marketing';
+const channel = opt('channel');
 const targets = args.filter(
-  (a, i) => !a.startsWith('--') && args[i - 1] !== '--mode'
+  (a, i) =>
+    !a.startsWith('--') && !['--mode', '--channel'].includes(args[i - 1])
 );
 const USAGE =
-  'usage: node scan.mjs <file|dir|-> [...] [--mode marketing|creative|docs] [--json] [--strict]';
-if (!targets.length || !['marketing', 'creative', 'docs'].includes(mode)) {
+  'usage: node scan.mjs <file|dir|-> [...] [--mode marketing|creative|docs] [--channel social] [--rhythm] [--json] [--strict]';
+if (
+  !targets.length ||
+  !['marketing', 'creative', 'docs'].includes(mode) ||
+  (channel !== undefined && channel !== 'social')
+) {
   console.error(USAGE);
   process.exit(2);
 }
 const active = RULES.filter(
-  r => r[2] === '*' || r[2].split(',').includes(mode)
+  r =>
+    (r[2] === '*' || r[2].split(',').includes(mode)) &&
+    (!r[5]?.channel || r[5].channel === channel)
 );
 
 function files(t) {
@@ -276,17 +326,22 @@ function files(t) {
     );
 }
 
-// Normalize typography so curly quotes don't hide patterns, and drop text that is not prose.
-const SHELL =
-  /\b(?:npm|npx|pnpm|yarn|node|git|gh|bash|sh|python3?|pip|docker|kubectl|curl|brew|cargo|go) (?:run |exec |install |add )?[\w:./@=-]+(?: [\w:./@=-]+)*/g;
-const clean = s =>
-  s
-    .replace(/[‘’ʼ]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/`[^`]*`/g, '``')
-    .replace(SHELL, ' ');
+// A CLI command: a tool name, then arguments that each carry a flag, path or colon character.
+// "npm run deploy:app -- data-viewer" is skipped; "go and unlock" is prose.
+const ARG = '[\\w:./@=-]*[:./@=-][\\w:./@=-]*';
+const SHELL = new RegExp(
+  `\\b(?:npm|npx|pnpm|yarn|node|git|gh|bash|sh|python3?|pip|docker|kubectl|curl|brew|cargo|go) (?:run |exec |install |add )?${ARG}(?: ${ARG})*`,
+  'g'
+);
+const clean = (s, { keepMarkdown = false } = {}) => {
+  let t = s.replace(/[‘’ʼ]/g, "'").replace(/[“”]/g, '"');
+  // cut-off speech in fiction: a dash right before a closing quote is a convention, not punctuation slop
+  if (mode === 'creative') t = t.replace(/—(?="(?:\s|$|[,.;:]))/g, '');
+  if (!keepMarkdown) t = t.replace(/`[^`]*`/g, '``');
+  return t.replace(SHELL, ' ');
+};
 
-// Lines of prose to check: [lineNumber, text, jsonKey]
+// Prose units to check: { line, text, raw, key }
 function prose(file) {
   const raw =
     file === '-' ? fs.readFileSync(0, 'utf8') : fs.readFileSync(file, 'utf8');
@@ -301,7 +356,7 @@ function prose(file) {
           !skip.test(key || '') &&
           (/[a-z]{2,}\s/i.test(v) || short.test(key || ''))
         )
-          out.push([0, clean(v.replace(/\*/g, '')), key]);
+          out.push({ line: 0, text: clean(v.replace(/\*/g, '')), raw: v, key });
       } else if (Array.isArray(v)) v.forEach(x => walk(x, key));
       else if (v && typeof v === 'object')
         for (const k of Object.keys(v)) walk(v[k], k);
@@ -322,22 +377,57 @@ function prose(file) {
         (/^\s*(<!--|\||---$)/.test(l) && !/[a-z]{3,} [a-z]{3,}/i.test(l))
       )
         return null;
-      return [
-        i + 1,
-        clean(l.replace(/\]\([^)]*\)/g, ']').replace(/<[^>]+>/g, ' ')),
-      ];
+      const stripped = l.replace(/\]\([^)]*\)/g, ']').replace(/<[^>]+>/g, ' ');
+      return {
+        line: i + 1,
+        text: clean(stripped),
+        raw: channel === 'social' ? l : stripped,
+        key: undefined,
+      };
     })
     .filter(Boolean);
 }
 
+// Sentences with word counts, grouped by paragraph. A command-only or link-only line is not a sentence.
+function sentences(units) {
+  const paras = [[]];
+  for (const u of units) {
+    const t = u.text.trim();
+    if (!t) {
+      if (paras.at(-1).length) paras.push([]);
+      continue;
+    }
+    if (/^(?:https?:\/\/\S+|\[LINK[^\]]*\])$/i.test(t) || !/[a-z]{2,}/i.test(t))
+      continue;
+    const body = t.replace(/^#{1,6}\s+|^\s*[-*+]\s+|\*\*/g, '');
+    // split after . ! ? (and a closing quote) when the next sentence starts with a capital, digit or quote
+    for (const s of body.split(/(?<=[.!?]["']?)\s+(?=["'(\p{Lu}\d])/u)) {
+      const words = s.match(/[\p{L}\p{N}][\p{L}\p{N}'’:.\/-]*/gu) || [];
+      if (words.length)
+        paras
+          .at(-1)
+          .push({ line: u.line, words: words.length, text: s.trim() });
+    }
+  }
+  return paras.filter(p => p.length);
+}
+
 const findings = [];
+const rhythm = [];
 for (const t of targets)
-  for (const f of files(t))
-    for (const [line, text, key] of prose(f))
-      for (const [id, severity, , re, message] of active) {
+  for (const f of files(t)) {
+    const units = prose(f);
+    const lastLine = Math.max(
+      0,
+      ...units.filter(u => u.text.trim()).map(u => u.line)
+    );
+    for (const { line, text, raw, key } of units)
+      for (const [id, severity, , re, message, o = {}] of active) {
+        if (o.last && line && line !== lastLine) continue;
+        const subject = o.channel ? raw : text;
         re.lastIndex = 0;
         let m;
-        while ((m = re.exec(text))) {
+        while ((m = re.exec(subject))) {
           if (!m[0]) {
             re.lastIndex++;
             continue;
@@ -348,24 +438,104 @@ for (const t of targets)
             key,
             rule: id,
             severity,
+            at: m.index,
             match: m[0].trim(),
             message,
             text: text.trim().slice(0, 140),
           });
         }
       }
+    // structural checks over sentences
+    for (const para of sentences(units)) {
+      if (flag('rhythm'))
+        rhythm.push({ file: f, counts: para.map(s => s.words) });
+      for (let i = 0; i + 2 < para.length; i++) {
+        const run = para.slice(i, i + 3).map(s => s.words);
+        if (flag('rhythm') && Math.max(...run) - Math.min(...run) <= 2)
+          findings.push({
+            file: f,
+            line: para[i].line,
+            rule: 'rhythm-run',
+            severity: 'WARN',
+            match: run.join('/'),
+            message:
+              'Three sentences in a row within two words of the same length. Vary one, unless that would push a sentence past 20 words or change its meaning; then report it.',
+            text: para[i].text.slice(0, 140),
+          });
+        if (mode === 'marketing' && run.every(n => n <= 2))
+          findings.push({
+            file: f,
+            line: para[i].line,
+            rule: 'fragment-run',
+            severity: 'WARN',
+            match: para
+              .slice(i, i + 3)
+              .map(s => s.text)
+              .join(' '),
+            message:
+              'Three fragments in a row ("Fast. Simple. Yours."). Write one sentence that says the thing.',
+            text: para[i].text.slice(0, 140),
+          });
+      }
+      if (mode !== 'creative')
+        for (const s of para)
+          if (s.words > 25)
+            findings.push({
+              file: f,
+              line: s.line,
+              rule: 'long-sentence',
+              severity: 'WARN',
+              match: `${s.words} words`,
+              message: 'Sentence over 25 words. Split it.',
+              text: s.text.slice(0, 140),
+            });
+    }
+  }
 
-const ban = findings.filter(x => x.severity === 'BAN').length;
-const summary = `${mode}: ${ban} BAN, ${findings.length - ban} WARN`;
+// a "just" inside a "not just X" contrast is one finding, not two
+const contrast = findings.filter(x => x.rule === 'not-just-x');
+const deduped = findings.filter(
+  x =>
+    !(
+      x.rule === 'filler-word' &&
+      contrast.some(
+        c =>
+          c.file === x.file &&
+          c.line === x.line &&
+          c.key === x.key &&
+          x.at >= c.at &&
+          x.at < c.at + c.match.length
+      )
+    )
+);
+
+const ban = deduped.filter(x => x.severity === 'BAN').length;
+const summary = `${mode}: ${ban} BAN, ${deduped.length - ban} WARN`;
+const clean_out = ({ at, ...x }) => x;
 if (flag('json'))
-  console.log(JSON.stringify({ mode, summary, findings }, null, 2));
+  console.log(
+    JSON.stringify(
+      {
+        mode,
+        channel,
+        summary,
+        findings: deduped.map(clean_out),
+        ...(flag('rhythm') ? { rhythm } : {}),
+      },
+      null,
+      2
+    )
+  );
 else {
-  for (const x of findings)
+  for (const x of deduped)
     console.log(
       `${x.severity} ${x.file}${x.line ? ':' + x.line : x.key ? ' [' + x.key + ']' : ''}  ${x.rule}  "${x.match}"  ${x.message}`
     );
+  if (flag('rhythm'))
+    for (const r of rhythm)
+      console.log(`rhythm ${r.file}: ${r.counts.join(' ')}`);
   console.log(`\n${summary}`);
 }
-const failed = ban > 0 || (flag('strict') && findings.length > 0);
+const failed = ban > 0 || (flag('strict') && deduped.length > 0);
 // exitCode, not exit(): exit() truncates large piped output
 process.exitCode = failed ? 1 : 0;

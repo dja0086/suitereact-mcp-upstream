@@ -1,12 +1,12 @@
 # Voice reference
 
-This describes how the user writes about their own projects, taken from the READMEs and CLAUDE.md files across their repositories. Most of those repositories are private, so this file describes traits instead of quoting them. The one quoted example is from the public [dja0086/netsuite-agent](https://github.com/dja0086/netsuite-agent) README.
+This describes how the user writes about their own projects, taken from the READMEs and CLAUDE.md files across their repositories. It is drawn from documentation, not social posts, so when rewriting one of the owner's posts, their draft's voice wins where the two differ. Most of those repositories are private, so this file describes traits instead of quoting them. The one quoted example is from the public [dja0086/netsuite-agent](https://github.com/dja0086/netsuite-agent) README.
 
 > An agent builder that turns a NetSuite use case written in plain language into a Claude Managed Agent on Oracle's NetSuite AI Connector, with fixed safety rules; plus the SuiteCloud (SDF) project that holds every change to the NetSuite account.
 
 ## Traits
 
-- **Opens with what the thing does**, as a noun phrase plus a mechanism: what goes in, what comes out, and the constraint that matters. No label, no greeting, no question.
+- **Opens with what the thing does** (in READMEs), as a noun phrase plus a mechanism: what goes in, what comes out, and the constraint that matters. No label and no greeting. In posts the owner may open with the concrete question the product answers instead; keep it when rewriting their draft.
 - **Names real objects.** Products, record types, file paths, dates, ticket and ADR numbers. A reader can check every noun.
 - **States limits and status plainly.** What is done, what was retired and when, what is synthetic or test-only, what cannot be regenerated.
 - **Uses negatives to define scope**, not to dramatize: what is not installed, not allowed, not in scope.
