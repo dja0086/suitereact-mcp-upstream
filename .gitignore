@@ -96,3 +96,6 @@ apps/*/client/
 .workflows/
 
 .worktrees
+
+# launch-video skill workspace (captures, renders, reference analysis)
+/.launch-video/

@@ -1,0 +1,87 @@
+{
+  "title": "Data Viewer launch",
+  "style": "spotlight",
+  "format": "16:9",
+  "fps": 30,
+  "brand": {
+    "name": "Data Viewer"
+  },
+  "scenes": [
+    {
+      "type": "title",
+      "duration": 3.2,
+      "text": "Data Viewer",
+      "sub": "Every NetSuite record in one grid."
+    },
+    {
+      "type": "statement",
+      "duration": 2.6,
+      "text": "Stop exporting saved searches\nto *spreadsheets*."
+    },
+    {
+      "type": "capture",
+      "src": "captures/customers",
+      "from": "@load-1.2",
+      "until": "@filters-0.4",
+      "caption": "Load 18 customers in one click",
+      "zoom": [
+        {
+          "at": "@load-0.9",
+          "rect": "@load",
+          "pad": 260
+        },
+        {
+          "at": "@load+0.2",
+          "rect": "full"
+        }
+      ]
+    },
+    {
+      "type": "capture",
+      "layout": "split",
+      "src": "captures/customers",
+      "from": "@filters-0.8",
+      "until": "@export+0.6",
+      "eyebrow": "Filters",
+      "heading": "Filter by date, ID or *status*.",
+      "text": "Basic and field filters compile to SuiteQL. There is no saved search to maintain.",
+      "zoom": [
+        {
+          "at": "@filters+0.1",
+          "rect": [0, 60, 1440, 360]
+        }
+      ]
+    },
+    {
+      "type": "features",
+      "duration": 4.2,
+      "heading": "One grid for customers, transactions and employees.",
+      "items": [
+        {
+          "icon": "table",
+          "title": "Paged results",
+          "text": "Pages through SuiteQL with a live row count."
+        },
+        {
+          "icon": "filter",
+          "title": "Field filters",
+          "text": "Filter on any field the record exposes, joins included."
+        },
+        {
+          "icon": "download",
+          "title": "CSV export",
+          "text": "Downloads the rows and columns on screen."
+        }
+      ],
+      "size": 72
+    },
+    {
+      "type": "end",
+      "duration": 3.4,
+      "text": "Data Viewer",
+      "sub": "A SuiteReact app for NetSuite.",
+      "cta": "Deploy Data Viewer",
+      "url": "npm run deploy:app -- data-viewer"
+    }
+  ]
+}

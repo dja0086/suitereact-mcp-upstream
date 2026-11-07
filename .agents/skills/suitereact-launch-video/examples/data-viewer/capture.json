@@ -1,0 +1,34 @@
+{
+  "name": "customers",
+  "url": "http://127.0.0.1:5173/",
+  "displayUrl": "netsuite.com/app/site/hosting/scriptlet.nl?script=data_viewer",
+  "viewport": [1440, 900],
+  "deviceScaleFactor": 2,
+  "mock": {
+    "pattern": "**/api/handle-action",
+    "module": "mock.mjs",
+    "delay": 450
+  },
+  "steps": [
+    { "waitFor": "text=Data Viewer" },
+    { "wait": 700 },
+    {
+      "click": "main >> role=button[name='Load data']",
+      "mark": "load",
+      "ms": 900
+    },
+    { "waitFor": "text=Northwind Traders", "mark": "loaded" },
+    { "wait": 1200 },
+    { "hover": "text=Fabrikam Robotics", "ms": 800, "pause": 600 },
+    {
+      "click": "role=button[name='Basic filters']",
+      "mark": "filters",
+      "ms": 900
+    },
+    { "wait": 1500 },
+    { "press": "Escape" },
+    { "wait": 400 },
+    { "click": "role=button[name='Export CSV']", "mark": "export", "ms": 900 },
+    { "wait": 900 }
+  ]
+}
