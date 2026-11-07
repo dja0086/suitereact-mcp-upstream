@@ -13,15 +13,16 @@ Everything runs through one driver. Paths below are relative to the repository r
 node .agents/skills/suitereact-launch-video/driver.mjs
 ```
 
-| Command                                                               | Does                                                                                                      |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `new <slug>`                                                          | Scaffolds `.launch-video/<slug>/` with `brief.md`, `capture.json`, `storyboard.json`                      |
-| `analyze <ref.mp4> [--out dir]`                                       | Reference video → `style.json`, `analysis.json` (cuts, pacing, palette), `contact.png`, `keyframes/`      |
-| `capture <capture.json>`                                              | Drives the running app, records timestamped hi-DPI frames, cursor path, and `mark`s; writes `preview.mp4` |
-| `still <storyboard.json> <t> [t…] [--scale 0.5]`                      | PNG frames at given seconds → `out/stills/` (≈2 s; use for every iteration)                               |
-| `render <storyboard.json> [--draft] [--from s] [--to s] [--format f]` | MP4 → `out/<name>.mp4`. Full 1080p ≈ 3.5× realtime; `--draft` renders half-size ≈ 1.3× realtime           |
-| `sheet <video.mp4> [--cols 4 --rows 3]`                               | Timestamped contact sheet PNG to review a render in one image                                             |
-| `palettes`                                                            | Lists style presets: `midnight` (default), `daylight`, `harbor`, `volt`                                   |
+| Command                                                               | Does                                                                                                                      |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `new <slug>`                                                          | Scaffolds `.launch-video/<slug>/` with `brief.md`, `capture.json`, `storyboard.json`                                      |
+| `analyze <ref.mp4> [--out dir]`                                       | Reference video → `style.json`, `analysis.json` (cuts, pacing, palette), `contact.png`, `keyframes/`                      |
+| `capture <capture.json>`                                              | Drives the running app, records timestamped hi-DPI frames, cursor path, and `mark`s; writes `preview.mp4`                 |
+| `still <storyboard.json> <t> [t…] [--scale 0.5]`                      | PNG frames at given seconds → `out/stills/` (≈2 s; use for every iteration)                                               |
+| `render <storyboard.json> [--draft] [--from s] [--to s] [--format f]` | MP4 → `out/<name>.mp4`. Full 1080p ≈ 3.5× realtime; `--draft` renders half-size ≈ 1.3× realtime                           |
+| `sheet <video.mp4> [--cols 4 --rows 3]`                               | Timestamped contact sheet PNG to review a render in one image                                                             |
+| `lint <storyboard.json>`                                              | Contrast, removed slop styles, emoji icons, highlight count, unverified stats, and the anti-slop copy scan. Exit 1 on BAN |
+| `palettes`                                                            | Lists style presets: `spotlight` (default), `spotlight-serif`, `paper`                                                    |
 
 `.launch-video/` is git-ignored. Commit only skill changes, never captures or renders.
 
@@ -55,13 +56,19 @@ node .agents/skills/suitereact-launch-video/driver.mjs
 
 4. **Storyboard.** Write `storyboard.json` from the brief following [prompts/storyboard.md](prompts/storyboard.md) (arc, copy rules, zoom placement). If the user gave a script, use their lines verbatim as statements and captions.
 
-5. **Iterate on stills.** Render 4 to 8 key moments and Read them. Fix copy, timing, and zooms until each frame looks intentional:
+5. **Lint.** Fix every BAN and decide each WARN before rendering. The copy check is the [anti-slop-writing](../anti-slop-writing/SKILL.md) scanner in `marketing` mode:
+
+   ```bash
+   node .agents/skills/suitereact-launch-video/driver.mjs lint .launch-video/<slug>/storyboard.json
+   ```
+
+6. **Iterate on stills.** Render 4 to 8 key moments and Read them. Fix copy, timing, and zooms until each frame looks intentional:
 
    ```bash
    node .agents/skills/suitereact-launch-video/driver.mjs still .launch-video/<slug>/storyboard.json 1.6 4.4 6.5 13 17 21 24
    ```
 
-6. **Render**, then review the result with a contact sheet:
+7. **Render**, then review the result with a contact sheet:
 
    ```bash
    node .agents/skills/suitereact-launch-video/driver.mjs render .launch-video/<slug>/storyboard.json
@@ -71,7 +78,7 @@ node .agents/skills/suitereact-launch-video/driver.mjs
    node .agents/skills/suitereact-launch-video/driver.mjs sheet .launch-video/<slug>/out/storyboard.mp4
    ```
 
-7. **Stop** the dev session: `npm run dev:stop -- <app-name>`. Report the MP4 path, its duration, and anything unverified (for example "stat value supplied by user").
+8. **Stop** the dev session: `npm run dev:stop -- <app-name>`. Report the MP4 path, its duration, and anything unverified (for example "stat value supplied by user").
 
 A complete worked example is in [examples/data-viewer/](examples/data-viewer/), with `capture.json`, `mock.mjs`, and `storyboard.json`. To reproduce it:
 
@@ -142,15 +149,19 @@ Shared fields are `type`, `duration` (seconds), and `transition: "cut"` (optiona
 | `title`     | `eyebrow`, `text`, `sub`, `size`                                                                                                                                                                                                     |
 | `statement` | `text`, `sub`, `size`                                                                                                                                                                                                                |
 | `capture`   | `src` (capture dir), `from`, `until` or `duration`, `speed`, `caption`, `captionAt`, `zoom: [{at, rect: [x,y,w,h] \| "@mark" \| "full", pad, dur}]`, `layout: "split"` + `eyebrow`/`heading`/`text`, `cursor: false`, `url`, `width` |
-| `features`  | `heading`, `items: [{icon, title, text}]`, `columns`, `stagger`                                                                                                                                                                      |
-| `stat`      | `eyebrow`, `value`, `from`, `prefix`, `suffix`, `label`, `countDuration`                                                                                                                                                             |
+| `features`  | `heading`, `size`, `items: [{icon, title, text}]` (icons: `table`, `grid`, `filter`, `search`, `download`, `check`, `clock`, `shield`, `zap`), `stagger`                                                                             |
+| `stat`      | `value`, `verified`, `from`, `prefix`, `suffix`, `label`, `countDuration`, `eyebrow`                                                                                                                                                 |
 | `end`       | `logo`, `text`, `sub`, `cta`, `url`                                                                                                                                                                                                  |
 
 Top level: `style` (preset name or path to a `style.json`), `styleOverrides` (deep-merged), `format` (`16:9`, `1:1`, `4:5`, `9:16`), `fps`, `brand: {name, logo}` (corner mark on body scenes), and `music: {src, volume, fadeOut, start}`. Music must be a track the user owns or has licensed; the driver never fetches audio.
 
 ## Style tokens
 
-`palette {bg, bg2, fg, muted, accent, accent2, onAccent}` · `font {display, body, mono, weightDisplay, tracking}` · `motion {ease: expo|quint|cubic|back|inout, text: mask|blur|scale, wordStagger, enter, drift, transition: fade-zoom|fade|slide|cut, transitionDuration, zoomDuration}` · `highlight: gradient|pill|underline` · `background: aurora|grid|gradient|solid` · `glow`, `grain`, `vignette` · `cornerMark` · `frame {radius, chrome: browser|none, tilt}`. Defaults are in `DEFAULT_STYLE` in `driver.mjs`. Fonts must be installed locally; the renderer checks `fc-list : family` and warns about any that are missing.
+`palette {bg, bg2, fg, muted, dim, accent, accent2, onAccent, eyebrow, chrome, frameGlow}` · `font {display, body, mono, weightDisplay, tracking, trackingSmall, leading, scale, files: [{family, src, weight}]}` · `motion {ease: expo|quint|cubic|back|inout, text: mask|blur|scale, wordStagger, enter, drift, transition: fade-zoom|fade|slide|cut, transitionDuration, zoomDuration}` · `highlight: spotlight|underline|pill` · `background: spotlight|solid` · `glow`, `grain`, `vignette` · `cornerMark` · `frame {radius, chrome: browser|none, tilt}` · `brandPurple`. Defaults are in `DEFAULT_STYLE` in `driver.mjs`. Bundled OFL fonts in `fonts/` (Bricolage Grotesque, Instrument Sans, Instrument Serif upright) load through `font.files` with paths relative to the skill; other families must appear in `fc-list : family`.
+
+## Design rules
+
+The defaults avoid the AI-design tells listed in the starred `devsloka-anti-slop` checklist and the local `frontend-design` skill: no purple or gradient text, no aurora or glow-blob backgrounds, no emoji icons, no row of identical cards, no tracked all-caps eyebrows, no arrow on buttons, and one rationed highlight device. Those code paths were removed, and `lint` reports them as BAN if a style asks for them. Purple accents pass only with `"brandPurple": true` for a documented brand color.
 
 ## Gotchas
 
@@ -168,11 +179,13 @@ Top level: `style` (preset name or path to a `style.json`), `styleOverrides` (de
 
 ## Troubleshooting
 
-| Symptom                                                           | Fix                                                                                                                       |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `capture`: `locator.waitFor: Timeout … exceeded` + `error.png`    | Read `error.png`. Usually a substring `text=` selector or a mock that never matched; rerun with `DEBUG=1` to log requests |
-| `capture "x" has no mark "y"`                                     | Marks are case-sensitive; the error lists the existing marks                                                              |
-| `mark @x has no element rect`                                     | That step had no element; use `click`/`hover`/`type` or `markRect`                                                        |
-| `Failed to resolve entry for package "suitereact"` in the capture | Build the shared library (see Gotchas), then restart `npm run dev`                                                        |
-| `[info] playwright browser build missing; using …`                | Expected in this container; not an error                                                                                  |
-| `[warn] fonts not installed, Chromium will fall back: …`          | Use a family listed by `fc-list : family` in `font.*`                                                                     |
+| Symptom                                                           | Fix                                                                                                                        |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `capture`: `locator.waitFor: Timeout … exceeded` + `error.png`    | Read `error.png`. Usually a substring `text=` selector or a mock that never matched; rerun with `DEBUG=1` to log requests  |
+| `capture "x" has no mark "y"`                                     | Marks are case-sensitive; the error lists the existing marks                                                               |
+| `mark @x has no element rect`                                     | That step had no element; use `click`/`hover`/`type` or `markRect`                                                         |
+| `Failed to resolve entry for package "suitereact"` in the capture | Build the shared library (see Gotchas), then restart `npm run dev`                                                         |
+| `[info] playwright browser build missing; using …`                | Expected in this container; not an error                                                                                   |
+| `[warn] fonts not installed, Chromium will fall back: …`          | Use a family listed by `fc-list : family`, or bundle the font and list it in `font.files`                                  |
+| `style "midnight" not found`                                      | `midnight`, `daylight`, `harbor` and `volt` were removed as AI-design tells; use `spotlight`, `spotlight-serif` or `paper` |
+| `lint`: `BAN contrast: palette.dim … needs 3:1`                   | Lighten `dim` on dark backgrounds or darken it on light ones until the ratio passes                                        |

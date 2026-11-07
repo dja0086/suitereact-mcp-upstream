@@ -35,7 +35,7 @@ async function fixture(t) {
     path.join(repo, 'link-skills.sh')
   );
   const names = (await readdir(source)).sort();
-  assert.equal(names.length, 15);
+  assert.equal(names.length, 16);
   assert.ok(names.includes('suiteql-cookbook'));
   return {
     root,

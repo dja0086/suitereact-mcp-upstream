@@ -1,6 +1,6 @@
 {
   "title": "Data Viewer launch",
-  "style": "midnight",
+  "style": "spotlight",
   "format": "16:9",
   "fps": 30,
   "brand": {
@@ -10,9 +10,8 @@
     {
       "type": "title",
       "duration": 3.2,
-      "eyebrow": "Introducing",
       "text": "Data Viewer",
-      "sub": "Every NetSuite record, one fast grid."
+      "sub": "Every NetSuite record in one grid."
     },
     {
       "type": "statement",
@@ -32,7 +31,7 @@
           "pad": 260
         },
         {
-          "at": "@loaded",
+          "at": "@load+0.2",
           "rect": "full"
         }
       ]
@@ -44,8 +43,8 @@
       "from": "@filters-0.8",
       "until": "@export+0.6",
       "eyebrow": "Filters",
-      "heading": "Slice by date, ID, or *status*.",
-      "text": "Basic and field-level filters run as SuiteQL — no saved search needed.",
+      "heading": "Filter by date, ID or *status*.",
+      "text": "Basic and field filters compile to SuiteQL. There is no saved search to maintain.",
       "zoom": [
         {
           "at": "@filters+0.1",
@@ -56,39 +55,32 @@
     {
       "type": "features",
       "duration": 4.2,
-      "heading": "Built for *operators*.",
+      "heading": "One grid for customers, transactions and employees.",
       "items": [
         {
-          "icon": "⚡",
-          "title": "Instant grid",
-          "text": "Paginated SuiteQL with live progress."
+          "icon": "table",
+          "title": "Paged results",
+          "text": "Pages through SuiteQL with a live row count."
         },
         {
-          "icon": "⌕",
+          "icon": "filter",
           "title": "Field filters",
-          "text": "Filter on any record field, joins included."
+          "text": "Filter on any field the record exposes, joins included."
         },
         {
-          "icon": "⇩",
+          "icon": "download",
           "title": "CSV export",
-          "text": "Export exactly what you see."
+          "text": "Downloads the rows and columns on screen."
         }
-      ]
-    },
-    {
-      "type": "stat",
-      "duration": 3,
-      "eyebrow": "Customers · Transactions · Employees",
-      "value": 3,
-      "suffix": " views",
-      "label": "One app. Zero saved searches."
+      ],
+      "size": 72
     },
     {
       "type": "end",
       "duration": 3.4,
       "text": "Data Viewer",
       "sub": "A SuiteReact app for NetSuite.",
-      "cta": "Deploy it today",
+      "cta": "Deploy Data Viewer",
       "url": "npm run deploy:app -- data-viewer"
     }
   ]

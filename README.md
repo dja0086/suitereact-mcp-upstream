@@ -68,7 +68,7 @@ npm run dev:stop -- data-viewer
 The **tools** provide NetSuite and framework capabilities. The **skills** define how the agent uses them: plan first, make a scoped change, verify it, and report the evidence.
 
 1. [Connect the MCP server](#mcp-server) to your coding client.
-2. Use the skills in [`.agents/skills/`](.agents/skills/), the canonical source for all 15 workflows. Compatible clients discover them from the checkout; other clients can use an [installation adapter](docs/setup.md#install-or-refresh-agent-skills). Load companion skills from the same checkout.
+2. Use the skills in [`.agents/skills/`](.agents/skills/), the canonical source for all 16 workflows. Compatible clients discover them from the checkout; other clients can use an [installation adapter](docs/setup.md#install-or-refresh-agent-skills). Load companion skills from the same checkout.
 3. Invoke `suitereact-full-cycle` with an app name and a concrete goal. Adapt the invocation syntax to your client:
 
 ```text
@@ -100,6 +100,7 @@ suitereact-full-cycle <app-name> <goal>
 | Work with Doc Spaces  | `doc-spaces-author`, `doc-spaces-publish`, `doc-spaces-search`                                           |
 | Write SuiteQL queries | [suiteql-cookbook](.agents/skills/suiteql-cookbook/SKILL.md)                                             |
 | Make launch videos    | [suitereact-launch-video](.agents/skills/suitereact-launch-video/SKILL.md)                               |
+| Write without AI slop | [anti-slop-writing](.agents/skills/anti-slop-writing/SKILL.md)                                           |
 
 The canonical local record is `.workflows/<app>/<workflow-id>/workflow.json`. It tracks ownership, checks, live evidence, and delivery state and is ignored by Git. See the [full-cycle skill](.agents/skills/suitereact-full-cycle/SKILL.md) and [workflow contract](.agents/skills/suitereact-full-cycle/references/workflow-contract.md).
 

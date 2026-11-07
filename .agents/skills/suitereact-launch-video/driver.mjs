@@ -5,6 +5,7 @@
 //   node driver.mjs new <slug>                       scaffold .launch-video/<slug>/
 //   node driver.mjs analyze <ref.mp4> [--out dir]    palette + pacing + keyframes -> style.json
 //   node driver.mjs capture <capture.json>           drive app, record timestamped frames
+//   node driver.mjs lint <storyboard.json>          contrast, banned styles, anti-slop copy scan
 //   node driver.mjs render <storyboard.json> [--draft] [--from s] [--to s] [--out f.mp4]
 //   node driver.mjs still <storyboard.json> <t...>   PNG stills at times (seconds)
 //   node driver.mjs sheet <video.mp4> [--out png]    contact sheet for review
@@ -28,22 +29,48 @@ const FORMATS = {
   '9:16': [1080, 1920],
   '4:5': [1080, 1350],
 };
+// Monochrome "spotlight": grey sentence, one lit word, one neutral key light.
+// No hue, gradient text, glow blobs, emoji or card kits (see ../anti-slop-writing).
 const DEFAULT_STYLE = {
   name: 'default',
   palette: {
-    bg: '#07080d',
-    bg2: '#11131c',
-    fg: '#f4f6fb',
-    muted: '#8a91a5',
-    accent: '#7c6cff',
-    accent2: '#2dd4bf',
+    bg: '#000000',
+    bg2: '#0c0c0c',
+    fg: '#ffffff',
+    muted: '#9a9a9a',
+    dim: '#5e5e5e',
+    accent: '#ffffff',
+    accent2: '#ffffff',
+    onAccent: '#000000',
+    eyebrow: '#9a9a9a',
+    chrome: '#121212',
+    frameGlow: 'rgba(255,255,255,0.07)',
   },
   font: {
-    display: 'Inter Display',
-    body: 'Inter',
+    display: 'Bricolage Grotesque',
+    body: 'Instrument Sans',
     mono: 'JetBrains Mono',
-    weightDisplay: 800,
+    weightDisplay: 700,
     tracking: '-0.045em',
+    trackingSmall: '-0.02em',
+    leading: 1.0,
+    files: [
+      {
+        family: 'Bricolage Grotesque',
+        src: 'fonts/BricolageGrotesque-Bold.ttf',
+        weight: 700,
+      },
+      {
+        family: 'Instrument Sans',
+        src: 'fonts/InstrumentSans-Regular.ttf',
+        weight: 400,
+      },
+      {
+        family: 'Instrument Sans',
+        src: 'fonts/InstrumentSans-Bold.ttf',
+        weight: 700,
+      },
+    ],
   },
   motion: {
     ease: 'expo',
@@ -55,11 +82,11 @@ const DEFAULT_STYLE = {
     transitionDuration: 0.5,
     zoomDuration: 0.9,
   },
-  highlight: 'gradient',
-  background: 'aurora',
-  glow: 0.32,
-  grain: 0.07,
-  vignette: 0.55,
+  highlight: 'spotlight',
+  background: 'spotlight',
+  glow: 0.09,
+  grain: 0.06,
+  vignette: 0.6,
   cornerMark: true,
   frame: { radius: 18, chrome: 'browser', tilt: true },
 };
@@ -1099,8 +1126,8 @@ function cmdAnalyze(file, flags) {
     source: rel(src),
     palette,
     motion,
-    background: dark ? 'aurora' : 'gradient',
-    highlight: 'gradient',
+    background: dark ? 'spotlight' : 'solid',
+    highlight: 'spotlight',
   };
   writeJson(path.join(out, 'style.json'), style);
   const analysis = {
@@ -1146,6 +1173,163 @@ function cmdAnalyze(file, flags) {
   );
 }
 
+// ---------------------------------------------------------------- lint
+const ICON_NAMES = [
+  'grid',
+  'filter',
+  'download',
+  'search',
+  'zap',
+  'check',
+  'clock',
+  'shield',
+  'table',
+  'bolt',
+];
+function cmdLint(file, flags) {
+  if (!file) die('usage: lint <storyboard.json>');
+  const sbPath = path.resolve(file);
+  const sb = readJson(sbPath);
+  const style = merge(
+    loadStyle(sb.style, path.dirname(sbPath)),
+    sb.styleOverrides || {}
+  );
+  const out = [];
+  const add = (severity, rule, message) =>
+    out.push({ severity, rule, message });
+  const p = style.palette;
+  const rgbOf = h =>
+    [1, 3, 5].map(i =>
+      parseInt(
+        h
+          .replace('#', '')
+          .padEnd(6, '0')
+          .slice(i - 1, i + 1),
+        16
+      )
+    );
+  const isHex = v => /^#[0-9a-f]{6}$/i.test(v || '');
+  // contrast: body text 4.5:1, dimmed display words 3:1 (large text)
+  for (const [k, min] of [
+    ['fg', 4.5],
+    ['muted', 4.5],
+    ['eyebrow', 4.5],
+    ['dim', 3],
+  ]) {
+    if (!isHex(p[k]) || !isHex(p.bg)) continue;
+    const c = contrast(rgbOf(p[k]), rgbOf(p.bg));
+    if (c < min)
+      add(
+        'BAN',
+        'contrast',
+        `palette.${k} ${p[k]} on ${p.bg} is ${c.toFixed(2)}:1 (needs ${min}:1)`
+      );
+  }
+  // removed slop modes, purple hues, competing accents
+  if (['gradient'].includes(style.highlight))
+    add(
+      'BAN',
+      'gradient-text',
+      'highlight "gradient" was removed; use spotlight, underline or pill'
+    );
+  if (['aurora', 'grid', 'gradient'].includes(style.background))
+    add(
+      'BAN',
+      'blob-background',
+      `background "${style.background}" was removed; use spotlight or solid`
+    );
+  for (const k of ['accent', 'accent2']) {
+    if (!isHex(p[k])) continue;
+    const [h, sat, l] = hsl(rgbOf(p[k]));
+    if (
+      sat > 0.3 &&
+      l > 0.15 &&
+      l < 0.9 &&
+      h >= 245 &&
+      h <= 320 &&
+      !style.brandPurple
+    )
+      add(
+        'BAN',
+        'purple-accent',
+        `palette.${k} ${p[k]} is violet/purple; set "brandPurple": true only if it is the documented brand color`
+      );
+  }
+  if (
+    isHex(p.accent) &&
+    isHex(p.accent2) &&
+    p.accent.toLowerCase() !== p.accent2.toLowerCase() &&
+    hsl(rgbOf(p.accent))[1] > 0.3 &&
+    hsl(rgbOf(p.accent2))[1] > 0.3
+  )
+    add(
+      'WARN',
+      'two-accents',
+      'Two saturated accents. Keep one accent with one job.'
+    );
+  // storyboard structure
+  const lit = sb.scenes.filter(sc =>
+    /\*[^*]+\*/.test([sc.text, sc.heading].join(' '))
+  ).length;
+  if (lit > 3)
+    add(
+      'WARN',
+      'highlight-overuse',
+      `${lit} scenes highlight a word; keep it to 2-3 signature moments`
+    );
+  for (const [i, sc] of sb.scenes.entries()) {
+    for (const it of sc.items || [])
+      if (it.icon && !ICON_NAMES.includes(it.icon))
+        add(
+          /\p{Extended_Pictographic}/u.test(it.icon) ? 'BAN' : 'WARN',
+          'icon',
+          `scene ${i + 1}: icon "${it.icon}" is not a built-in line icon (${ICON_NAMES.join(', ')})`
+        );
+    if (sc.type === 'stat' && !sc.verified)
+      add(
+        'WARN',
+        'unverified-stat',
+        `scene ${i + 1}: stat ${sc.prefix || ''}${sc.value}${sc.suffix || ''} has no "verified": true; confirm the number with the user`
+      );
+    if (
+      sc.type === 'features' &&
+      (sc.items || []).length === 3 &&
+      sb.scenes.filter(x => x.type === 'features').length > 1
+    )
+      add(
+        'WARN',
+        'repeated-layout',
+        'More than one features scene; vary the layout between adjacent scenes'
+      );
+  }
+  // copy: the shared anti-slop scanner (marketing mode)
+  const scan = path.resolve(HERE, '../anti-slop-writing/scan.mjs');
+  if (fs.existsSync(scan)) {
+    const r = spawnSync(
+      process.execPath,
+      [scan, sbPath, '--mode', 'marketing', '--json'],
+      { encoding: 'utf8' }
+    );
+    for (const f of JSON.parse(r.stdout || '{"findings":[]}').findings)
+      add(
+        f.severity,
+        f.rule,
+        `[${f.key}] "${f.match}" in "${f.text}": ${f.message}`
+      );
+  } else
+    add('WARN', 'scanner-missing', `copy not scanned: ${rel(scan)} not found`);
+  if (flags.json) console.log(JSON.stringify(out, null, 2));
+  else {
+    for (const x of out)
+      console.log(`${x.severity.padEnd(4)} ${x.rule}: ${x.message}`);
+    const ban = out.filter(x => x.severity === 'BAN').length;
+    console.log(
+      `\n${rel(sbPath)}: ${ban} BAN, ${out.length - ban} WARN${ban ? ' (fix before rendering)' : ''}`
+    );
+  }
+  process.exitCode = out.some(x => x.severity === 'BAN') ? 1 : 0;
+}
+
 // ---------------------------------------------------------------- main
 const [cmd, ...rest] = process.argv.slice(2);
 const { pos, flags } = args(rest);
@@ -1154,6 +1338,7 @@ const commands = {
   analyze: () => cmdAnalyze(pos[0], flags),
   capture: () => cmdCapture(pos[0], flags),
   render: () => cmdRender(pos[0], flags),
+  lint: () => cmdLint(pos[0], flags),
   still: () => cmdStill(pos[0], pos.slice(1), flags),
   sheet: () => cmdSheet(pos[0], flags),
   palettes: () => {
