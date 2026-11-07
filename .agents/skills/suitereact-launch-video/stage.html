@@ -79,14 +79,15 @@
         font-family: var(--font-display), Inter, sans-serif;
         font-weight: var(--w-display);
         letter-spacing: var(--tracking);
-        line-height: 1.02;
+        line-height: var(--leading);
+        text-wrap: balance;
       }
       .eyebrow {
         font-family: var(--font-mono), monospace;
         text-transform: uppercase;
         letter-spacing: 0.22em;
         font-size: 22px;
-        color: var(--accent2);
+        color: var(--eyebrow);
         display: inline-flex;
         align-items: center;
         gap: 14px;
@@ -104,6 +105,17 @@
         font-size: 34px;
         line-height: 1.35;
         font-weight: 450;
+        text-wrap: pretty;
+      }
+      /* eyebrowStyle "label": a quiet sentence-case line instead of tracked mono caps + glowing dot */
+      .eyebrow-label .eyebrow {
+        font-family: var(--font-body), Inter, sans-serif;
+        text-transform: none;
+        letter-spacing: 0;
+        font-size: 28px;
+      }
+      .eyebrow-label .eyebrow::before {
+        display: none;
       }
       .center {
         text-align: center;
@@ -123,6 +135,13 @@
         vertical-align: bottom;
         padding: 0 0.04em 0.12em;
         margin-bottom: -0.12em;
+      }
+      /* spotlight: the sentence sits in grey, only the key word is lit */
+      .dimmed {
+        color: var(--dim);
+      }
+      .dimmed .hl-spotlight {
+        color: var(--fg);
       }
       .hl-gradient {
         background: linear-gradient(
@@ -170,7 +189,7 @@
         box-shadow:
           0 50px 120px -30px rgba(0, 0, 0, 0.65),
           0 0 0 1px rgba(255, 255, 255, 0.02),
-          0 0 120px -40px var(--accent);
+          0 0 120px -40px var(--frame-glow);
       }
       .chrome {
         height: 46px;
@@ -293,6 +312,66 @@
         );
         opacity: 0.8;
       }
+      .ic svg {
+        width: 55%;
+        height: 55%;
+      }
+      .icon-bare .card .ic,
+      .icon-bare .row .ic {
+        background: none;
+        color: var(--fg);
+        width: 44px;
+        height: 44px;
+      }
+      .icon-bare .ic svg {
+        width: 100%;
+        height: 100%;
+      }
+      /* features layout "list": heading left, hairline-separated rows right (no card kit) */
+      .flist {
+        display: grid;
+        grid-template-columns: 0.9fr 1.1fr;
+        gap: 90px;
+        align-items: center;
+        width: 100%;
+        padding: 0 9%;
+        text-align: left;
+      }
+      .rows {
+        display: flex;
+        flex-direction: column;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 64px 1fr;
+        gap: 6px 22px;
+        padding: 30px 0;
+        border-top: 1px solid var(--line-strong);
+      }
+      .row:last-child {
+        border-bottom: 1px solid var(--line-strong);
+      }
+      .row .ic {
+        grid-row: span 2;
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+      }
+      .row h3 {
+        margin: 0;
+        font:
+          var(--w-display) 38px var(--font-display),
+          Inter,
+          sans-serif;
+        letter-spacing: var(--tracking-small);
+      }
+      .row p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 25px;
+        line-height: 1.4;
+      }
       .card .ic {
         width: 58px;
         height: 58px;
@@ -318,7 +397,7 @@
         line-height: 1.4;
       }
       .stat {
-        font-size: 260px;
+        font-size: calc(260px * var(--display-scale));
         font-variant-numeric: tabular-nums;
       }
       .cta {
@@ -388,6 +467,23 @@
         if (parent) parent.appendChild(n);
         return n;
       };
+      const ICONS = {
+        grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+        filter: '<path d="M3 5h18M6 12h12M10 19h4"/>',
+        download: '<path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>',
+        search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+        zap: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+        check: '<path d="M4 12l5 5L20 6"/>',
+        clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+        shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>',
+        table:
+          '<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 10h18M3 15h18M9 4v16"/>',
+        bolt: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+      };
+      const icon = name =>
+        ICONS[name]
+          ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`
+          : esc(name);
       const esc = s =>
         String(s ?? '').replace(
           /[&<>"]/g,
@@ -458,6 +554,8 @@
           }
           if (li < lines.length - 1) el('br', null, parent);
         });
+        if (S.highlight === 'spotlight' && words.some(w => w.hl))
+          parent.classList.add('dimmed');
         return words;
       }
       function animateWords(words, lt, delay = 0, stagger = M.wordStagger) {
@@ -499,7 +597,7 @@
             ? el('div', 'eyebrow', box, esc(sc.eyebrow))
             : null;
           const h = el('div', 'display', box);
-          h.style.fontSize = (sc.size || (VERT ? 128 : 150)) + 'px';
+          h.style.fontSize = `calc(${sc.size || (VERT ? 128 : 150)}px * var(--display-scale))`;
           const words = buildText(h, sc.text);
           const sub = sc.sub ? el('div', 'sub', box, esc(sc.sub)) : null;
           if (sub) sub.style.maxWidth = '1200px';
@@ -513,7 +611,7 @@
         statement(root, sc) {
           const box = el('div', 'center', root);
           const h = el('div', 'display', box);
-          h.style.fontSize = (sc.size || (VERT ? 96 : 112)) + 'px';
+          h.style.fontSize = `calc(${sc.size || (VERT ? 96 : 112)}px * var(--display-scale))`;
           h.style.maxWidth = VERT ? '95%' : '1500px';
           const words = buildText(h, sc.text);
           const sub = sc.sub ? el('div', 'sub', box, esc(sc.sub)) : null;
@@ -539,7 +637,7 @@
             if (sc.eyebrow)
               sideText = el('div', 'eyebrow', side, esc(sc.eyebrow));
             const h = el('div', 'display', side);
-            h.style.fontSize = (VERT ? 78 : 76) + 'px';
+            h.style.fontSize = `calc(${VERT ? 78 : 76}px * var(--display-scale))`;
             sideWords = buildText(h, sc.heading || '');
             if (sc.text) {
               const p = el('div', 'sub', side, esc(sc.text));
@@ -671,12 +769,36 @@
           };
         },
         features(root, sc) {
+          if ((sc.layout || S.featuresLayout) === 'list' && !VERT) {
+            const wrap = el('div', 'flist', root);
+            const h = el('div', 'display', wrap);
+            h.style.fontSize = `calc(${sc.size || 92}px * var(--display-scale))`;
+            const words = buildText(h, sc.heading || '');
+            const list = el('div', 'rows', wrap);
+            const rows = sc.items.map(it => {
+              const r = el('div', 'row', list);
+              el('div', 'ic', r, icon(it.icon));
+              el('h3', null, r, esc(it.title));
+              if (it.text) el('p', null, r, esc(it.text));
+              return r;
+            });
+            return lt => {
+              const end = animateWords(words, lt, 0);
+              rows.forEach((r, i) => {
+                const p = E(
+                  clamp((lt - end + 0.4 - i * (sc.stagger || 0.16)) / M.enter)
+                );
+                r.style.opacity = p;
+                r.style.transform = `translateX(${(1 - p) * 40}px)`;
+              });
+            };
+          }
           const box = el('div', 'center', root);
           box.style.width = '100%';
           box.style.padding = VERT ? '0 7%' : '0 9%';
           box.style.gap = '56px';
           const h = el('div', 'display', box);
-          h.style.fontSize = (VERT ? 82 : 84) + 'px';
+          h.style.fontSize = `calc(${VERT ? 82 : 84}px * var(--display-scale))`;
           const words = buildText(h, sc.heading || '');
           const grid = el('div', 'cards', box);
           const n = sc.items.length;
@@ -684,7 +806,7 @@
           const cards = sc.items.map(it => {
             const c = el('div', 'card', grid);
             c.style.textAlign = 'left';
-            if (it.icon) el('div', 'ic', c, esc(it.icon));
+            if (it.icon) el('div', 'ic', c, icon(it.icon));
             el('h3', null, c, esc(it.title));
             if (it.text) el('p', null, c, esc(it.text));
             return c;
@@ -705,8 +827,13 @@
         stat(root, sc) {
           const box = el('div', 'center', root);
           if (sc.eyebrow) box._eb = el('div', 'eyebrow', box, esc(sc.eyebrow));
-          const n = el('div', 'display stat hl-gradient', box);
-          if (VERT) n.style.fontSize = '200px';
+          const n = el(
+            'div',
+            'display stat' +
+              (S.highlight === 'spotlight' ? '' : ' hl-gradient'),
+            box
+          );
+          if (VERT) n.style.fontSize = 'calc(200px * var(--display-scale))';
           const label = el('div', 'sub', box, esc(sc.label || ''));
           label.style.fontSize = '40px';
           label.style.color = 'var(--fg)';
@@ -739,11 +866,16 @@
             logo.style.height = '120px';
           }
           const h = el('div', 'display', box);
-          h.style.fontSize = (sc.size || (VERT ? 120 : 140)) + 'px';
+          h.style.fontSize = `calc(${sc.size || (VERT ? 120 : 140)}px * var(--display-scale))`;
           const words = buildText(h, sc.text);
           const tag = sc.sub ? el('div', 'sub', box, esc(sc.sub)) : null;
           const cta = sc.cta
-            ? el('div', 'cta', box, esc(sc.cta) + ' &rarr;')
+            ? el(
+                'div',
+                'cta',
+                box,
+                esc(sc.cta) + (S.ctaArrow === false ? '' : ' &rarr;')
+              )
             : null;
           const url = sc.url ? el('div', 'url-line', box, esc(sc.url)) : null;
           return lt => {
@@ -776,6 +908,15 @@
           });
         }
         if (kind === 'grid') el('div', 'grid-lines', bg);
+        if (kind === 'spotlight') {
+          // one neutral key light above frame center; no hue, so it suits monochrome themes
+          const b = el('div', 'blob', bg);
+          const size = Math.max(W, H) * 1.3;
+          const c = rgb(S.palette.light || S.palette.fg);
+          b.style.width = b.style.height = size + 'px';
+          b.style.background = `radial-gradient(circle, rgba(${c},${S.glow}) 0%, rgba(${c},0) 60%)`;
+          blobs.push({ b, size, i: 0, spot: true });
+        }
         if (kind === 'gradient')
           bg.style.background = `linear-gradient(160deg, var(--bg2) 0%, var(--bg) 60%)`;
         if (S.grain > 0) {
@@ -784,7 +925,12 @@
         }
         el('div', 'vignette', stage);
         return t => {
-          blobs.forEach(({ b, size, i }) => {
+          blobs.forEach(({ b, size, i, spot }) => {
+            if (spot) {
+              const x = W * (0.5 + 0.06 * Math.sin(t * 0.25)) - size / 2;
+              b.style.transform = `translate(${x}px, ${-size * 0.62}px)`;
+              return;
+            }
             const a = t * 0.12 + i * 2.1;
             const x = W * (0.5 + 0.32 * Math.cos(a + i)) - size / 2;
             const y = H * (0.5 + 0.28 * Math.sin(a * 1.3 + i * 1.7)) - size / 2;
@@ -850,6 +996,7 @@
           '--bg2': p.bg2 || p.bg,
           '--fg': p.fg,
           '--muted': p.muted,
+          '--dim': p.dim || p.muted,
           '--accent': p.accent,
           '--accent2': p.accent2 || p.accent,
           '--on-accent':
@@ -861,16 +1008,33 @@
             (dark ? 'rgba(255,255,255,.04)' : 'rgba(255,255,255,.75)'),
           '--glass': dark ? 'rgba(20,22,30,.62)' : 'rgba(255,255,255,.72)',
           '--chrome': p.chrome || (dark ? '#14161d' : '#f2f3f5'),
+          '--eyebrow': p.eyebrow || p.accent2 || p.accent,
+          '--frame-glow': p.frameGlow || p.accent,
           '--font-display': `"${S.font.display}"`,
           '--font-body': `"${S.font.body}"`,
           '--font-mono': `"${S.font.mono}"`,
           '--w-display': S.font.weightDisplay,
           '--tracking': S.font.tracking,
+          '--tracking-small': S.font.trackingSmall || '-0.02em',
+          '--leading': S.font.leading || 1.02,
+          '--display-scale': S.font.scale || 1,
           '--radius': S.frame.radius + 'px',
           '--grain': S.grain,
           '--vignette': S.vignette,
         };
         for (const k in vars) root.setProperty(k, vars[k]);
+        if (data.fontFaces?.length) {
+          const css = data.fontFaces
+            .map(
+              f =>
+                `@font-face{font-family:"${f.family}";src:url("${f.url}");font-weight:${f.weight || 400};font-style:${f.style || 'normal'};}`
+            )
+            .join('');
+          el('style', null, document.head, css);
+        }
+        if (S.eyebrowStyle === 'label')
+          document.body.classList.add('eyebrow-label');
+        if (S.iconStyle === 'bare') document.body.classList.add('icon-bare');
 
         const stage = document.getElementById('stage');
         stage.style.width = W + 'px';

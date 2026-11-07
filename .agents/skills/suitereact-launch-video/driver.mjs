@@ -540,6 +540,11 @@ async function openStage(ctx, scale = 1) {
   page.on('pageerror', e => console.error('[stage error]', e.message));
   await page.goto(pathToFileURL(path.join(HERE, 'stage.html')).href);
   const info = await page.evaluate(d => window.__init(d), {
+    // bundled fonts (font.files[].src) resolve relative to the skill directory
+    fontFaces: (ctx.style.font.files || []).map(f => ({
+      ...f,
+      url: pathToFileURL(path.resolve(HERE, f.src)).href,
+    })),
     storyboard: ctx.sb,
     style: ctx.style,
     width: ctx.width,
@@ -547,6 +552,16 @@ async function openStage(ctx, scale = 1) {
     scale,
     base: pathToFileURL(ctx.baseDir).href + '/',
   });
+  // @font-face fonts load lazily; force them before the first frame
+  await page.evaluate(
+    files =>
+      Promise.all(
+        files.map(f =>
+          document.fonts.load(`${f.weight || 400} 64px "${f.family}"`)
+        )
+      ),
+    ctx.style.font.files || []
+  );
   await page.evaluate(() => document.fonts.ready);
   // document.fonts.check() is true for any family not in the FontFaceSet, so ask fontconfig instead
   const fc = spawnSync('fc-list', [':', 'family'], { encoding: 'utf8' });
@@ -558,7 +573,11 @@ async function openStage(ctx, scale = 1) {
       ctx.style.font.display,
       ctx.style.font.body,
       ctx.style.font.mono,
-    ].filter(f => !have.has(String(f).toLowerCase()));
+    ].filter(
+      f =>
+        !have.has(String(f).toLowerCase()) &&
+        !(ctx.style.font.files || []).some(x => x.family === f)
+    );
     if (missing.length)
       console.error(
         `[warn] fonts not installed, Chromium will fall back: ${missing.join(', ')} (see: fc-list : family)`

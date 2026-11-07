@@ -1,0 +1,58 @@
+{
+  "name": "spotlight-grotesk",
+  "description": "Draft (design review): monochrome spotlight with Bricolage Grotesque headlines",
+  "palette": {
+    "bg": "#000000",
+    "bg2": "#0c0c0c",
+    "fg": "#ffffff",
+    "muted": "#9a9a9a",
+    "accent": "#ffffff",
+    "accent2": "#ffffff",
+    "onAccent": "#000000",
+    "eyebrow": "#9a9a9a",
+    "chrome": "#121212",
+    "frameGlow": "rgba(255,255,255,0.07)",
+    "dim": "#555555"
+  },
+  "highlight": "spotlight",
+  "background": "spotlight",
+  "glow": 0.09,
+  "grain": 0.06,
+  "vignette": 0.6,
+  "eyebrowStyle": "label",
+  "iconStyle": "bare",
+  "featuresLayout": "list",
+  "ctaArrow": false,
+  "cornerMark": true,
+  "motion": {
+    "ease": "expo",
+    "text": "mask",
+    "transition": "fade-zoom"
+  },
+  "font": {
+    "display": "Bricolage Grotesque",
+    "body": "Instrument Sans",
+    "mono": "JetBrains Mono",
+    "weightDisplay": 700,
+    "tracking": "-0.045em",
+    "trackingSmall": "-0.02em",
+    "leading": 1.0,
+    "files": [
+      {
+        "family": "Bricolage Grotesque",
+        "src": "fonts/BricolageGrotesque-Bold.ttf",
+        "weight": 700
+      },
+      {
+        "family": "Instrument Sans",
+        "src": "fonts/InstrumentSans-Regular.ttf",
+        "weight": 400
+      },
+      {
+        "family": "Instrument Sans",
+        "src": "fonts/InstrumentSans-Bold.ttf",
+        "weight": 700
+      }
+    ]
+  }
+}
