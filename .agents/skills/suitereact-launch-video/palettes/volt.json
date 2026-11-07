@@ -1,0 +1,26 @@
+{
+  "name": "volt",
+  "description": "High-energy mono: near-black, acid-lime pills, fast hard cuts",
+  "palette": {
+    "bg": "#0a0a0a",
+    "bg2": "#161616",
+    "fg": "#fafafa",
+    "muted": "#8f8f8f",
+    "accent": "#d4ff3a",
+    "accent2": "#ffffff",
+    "onAccent": "#0a0a0a"
+  },
+  "font": { "weightDisplay": 900, "tracking": "-0.055em" },
+  "motion": {
+    "ease": "quint",
+    "text": "scale",
+    "transition": "cut",
+    "wordStagger": 0.045,
+    "enter": 0.4,
+    "zoomDuration": 0.55
+  },
+  "highlight": "pill",
+  "background": "solid",
+  "grain": 0.1,
+  "frame": { "radius": 10, "tilt": false }
+}

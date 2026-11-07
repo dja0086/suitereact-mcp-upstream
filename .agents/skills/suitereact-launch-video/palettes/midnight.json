@@ -1,0 +1,15 @@
+{
+  "name": "midnight",
+  "description": "Dark keynote look: violet/teal aurora, mask-up headlines, gradient keywords",
+  "palette": {
+    "bg": "#07080d",
+    "bg2": "#11131c",
+    "fg": "#f4f6fb",
+    "muted": "#8a91a5",
+    "accent": "#7c6cff",
+    "accent2": "#2dd4bf"
+  },
+  "motion": { "ease": "expo", "text": "mask", "transition": "fade-zoom" },
+  "highlight": "gradient",
+  "background": "aurora"
+}

@@ -210,7 +210,7 @@ keys in `VITE_*` variables or production browser bundles.
 
 ### Install or refresh agent skills
 
-All 14 skills live in [`.agents/skills/`](../.agents/skills/), including
+All 15 skills live in [`.agents/skills/`](../.agents/skills/), including
 [suiteql-cookbook](../.agents/skills/suiteql-cookbook/SKILL.md) for query writing,
 debugging, and optimization with the authenticated NetSuite MCP tools. Keep the companion
 SuiteReact skills, reference files, and optional UI metadata from the same

@@ -1,0 +1,13 @@
+{
+  "name": "main",
+  "url": "http://127.0.0.1:5173/",
+  "displayUrl": "netsuite.com/app/site/hosting/scriptlet.nl",
+  "viewport": [1440, 900],
+  "deviceScaleFactor": 2,
+  "steps": [
+    { "waitFor": "body" },
+    { "wait": 800 },
+    { "click": "role=button[name='Replace me']", "mark": "first", "ms": 900 },
+    { "wait": 1500 }
+  ]
+}

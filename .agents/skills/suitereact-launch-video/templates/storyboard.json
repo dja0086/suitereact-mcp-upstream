@@ -1,0 +1,43 @@
+{
+  "title": "Replace me",
+  "style": "midnight",
+  "format": "16:9",
+  "fps": 30,
+  "brand": { "name": "Product" },
+  "scenes": [
+    {
+      "type": "title",
+      "duration": 3,
+      "eyebrow": "Introducing",
+      "text": "Product",
+      "sub": "One-line promise."
+    },
+    { "type": "statement", "duration": 2.6, "text": "The old way is *slow*." },
+    {
+      "type": "capture",
+      "src": "captures/main",
+      "from": "@first-1",
+      "duration": 4,
+      "caption": "What the click does",
+      "zoom": [{ "at": "@first-0.8", "rect": "@first", "pad": 220 }]
+    },
+    {
+      "type": "features",
+      "duration": 4,
+      "heading": "Built for *you*.",
+      "items": [
+        { "icon": "⚡", "title": "Fast", "text": "Why it matters." },
+        { "icon": "✓", "title": "Safe", "text": "Why it matters." },
+        { "icon": "⇩", "title": "Simple", "text": "Why it matters." }
+      ]
+    },
+    {
+      "type": "end",
+      "duration": 3.2,
+      "text": "Product",
+      "sub": "Tagline.",
+      "cta": "Get started",
+      "url": "example.com"
+    }
+  ]
+}
