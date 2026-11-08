@@ -19,7 +19,6 @@ import {
 import axios from 'axios';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import {
   createNetSuiteProxyClient,
@@ -206,7 +205,9 @@ export default function NsReactChatbot(props: NsReactChatbotProps) {
 
         let responseFormat;
         if (props.structuredOutput) {
-          const jsonSchema = zodToJsonSchema(props.structuredOutput.schema);
+          const jsonSchema = z.toJSONSchema(props.structuredOutput.schema, {
+            target: 'draft-7',
+          });
           responseFormat = {
             type: 'json_schema' as const,
             json_schema: {

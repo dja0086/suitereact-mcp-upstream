@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import express from 'express';
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 
 import { loadModule } from './helpers/load-suitescript.mjs';
 
@@ -75,7 +74,7 @@ for (const model of models) {
             }),
           },
         },
-        'zod-to-json-schema': { zodToJsonSchema },
+        zod: { z },
       },
       { console: quiet }
     );
@@ -140,6 +139,13 @@ for (const model of models) {
     assert.deepEqual(body.response_format, hostedRequest.response_format);
     assert.equal(body.response_format.type, 'json_schema');
     assert.equal(body.response_format.json_schema.strict, true);
+    assert.deepEqual(body.response_format.json_schema.schema, {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: { suggestedQuery: { type: 'string' } },
+      required: ['suggestedQuery'],
+      additionalProperties: false,
+    });
     if (model.clientType === 'openai') {
       assert.equal(body.max_completion_tokens, 15000);
       for (const key of ['temperature', 'top_p', 'max_tokens']) {

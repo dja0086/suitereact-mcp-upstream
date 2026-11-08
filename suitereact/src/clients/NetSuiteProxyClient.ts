@@ -1,6 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
 import { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 
 export interface ProxyMessage {
   role: 'system' | 'user' | 'assistant';
@@ -147,11 +146,9 @@ export class NetSuiteProxyClient {
   private convertZodSchemaToResponseFormat(
     structuredOutput: ProxyStructuredOutput
   ) {
-    // @ts-ignore — zodToJsonSchema generic inference causes TS2589 with z.ZodType<any> in some versions
-    const jsonSchema = zodToJsonSchema(structuredOutput.schema) as Record<
-      string,
-      unknown
-    >;
+    const jsonSchema = z.toJSONSchema(structuredOutput.schema, {
+      target: 'draft-7',
+    }) as Record<string, unknown>;
 
     return {
       type: 'json_schema' as const,
