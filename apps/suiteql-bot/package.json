@@ -38,6 +38,6 @@
     "react-dom": "^18.3.1",
     "sql-formatter": "^15.9.0",
     "suitereact": "file:../../suitereact",
-    "zod": "^3.22.4"
+    "zod": "^4.6.7"
   }
 }

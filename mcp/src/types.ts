@@ -18,8 +18,8 @@ export const SuiteQLOutputSchema = z.object({
   hasMore: z.boolean().optional(),
   count: z.number().optional(),
   offset: z.number().optional(),
-  items: z.array(z.record(z.any())).optional(),
-  links: z.array(z.record(z.any())).optional(),
+  items: z.array(z.record(z.string(), z.any())).optional(),
+  links: z.array(z.record(z.string(), z.any())).optional(),
 });
 
 export type SuiteQLOutput = z.infer<typeof SuiteQLOutputSchema>;
