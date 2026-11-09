@@ -6,7 +6,7 @@ This describes how the user writes about their own projects, taken from the READ
 
 ## Traits
 
-- **Opens with what the thing does** (in READMEs), as a noun phrase plus a mechanism: what goes in, what comes out, and the constraint that matters. No label and no greeting. In posts the owner may open with the concrete question the product answers instead; keep it when rewriting their draft.
+- **Opens with what the thing does** (in READMEs), as a noun phrase plus a mechanism: what goes in, what comes out, and the constraint that matters. No label and no greeting. Posts follow the same rule: open with what happened or what the tool does, never with a question.
 - **Names real objects.** Products, record types, file paths, dates, ticket and ADR numbers. A reader can check every noun.
 - **States limits and status plainly.** What is done, what was retired and when, what is synthetic or test-only, what cannot be regenerated.
 - **Uses negatives to define scope**, not to dramatize: what is not installed, not allowed, not in scope.
