@@ -70,6 +70,9 @@ project.xml
 **/.attributes/*
 diff.txt
 dist/
+# Local deploy scope written by validate:app / deploy:app
+/deploy.override
+/manifest.override
 
 # SDF Typescript
 .env
