@@ -304,7 +304,7 @@ test('--channel social bans Markdown; --rhythm finds flat runs', () => {
       'social'
     ).rules.includes('BAN:markdown-in-plain-text')
   );
-  assert.ok(clean('**What came before this order?**', 'marketing'));
+  assert.ok(clean('**Record Trace for transactions**', 'marketing'));
   const flat =
     'The order is one part of the chain. You need the records before and after it. I built this in a test account today.';
   assert.ok(
@@ -318,4 +318,22 @@ test('--channel social bans Markdown; --rhythm finds flat runs', () => {
       '--rhythm'
     ).rules.includes('WARN:rhythm-run')
   );
+});
+
+test('a question as the first line is a WARN in marketing', () => {
+  assert.ok(
+    has(
+      '**What came before this order?**\n\nThe chain matters.',
+      'marketing',
+      'WARN:question-hook'
+    )
+  );
+  assert.ok(
+    !has(
+      'I built a tool.\n\nWhat came before this order?',
+      'marketing',
+      'WARN:question-hook'
+    )
+  );
+  assert.ok(!has('What came before this order?', 'docs', 'WARN:question-hook'));
 });

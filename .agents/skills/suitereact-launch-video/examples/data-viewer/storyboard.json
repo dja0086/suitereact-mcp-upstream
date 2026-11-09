@@ -26,12 +26,14 @@
       "caption": "Load 18 customers in one click",
       "zoom": [
         {
-          "at": "@load-0.9",
+          "at": "@load-1.0",
+          "dur": 0.7,
           "rect": "@load",
           "pad": 260
         },
         {
-          "at": "@load+0.2",
+          "at": "@load+0.05",
+          "dur": 0.6,
           "rect": "full"
         }
       ]

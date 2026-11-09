@@ -25,7 +25,7 @@ const EM_DASH =
   '(?<=[\\p{L}\\p{N}.,;:)"\'*?!])\\s?—\\s?(?=[\\p{L}\\p{N}("\'*])|^\\s*—\\s?(?=[\\p{L}"\'])|(?<=\\p{L})\\s–\\s(?=\\p{L})|(?<=\\p{L})\\s--\\s(?=\\p{L})';
 
 // [id, severity, modes ('*' = all), regex, message, options]
-// options.last: only on the last prose line of a file; options.channel: only with --channel <x>
+// options.first / options.last: only on the first / last prose line of a file; options.channel: only with --channel <x>
 const RULES = [
   // ---- punctuation and glyphs ----
   [
@@ -167,6 +167,14 @@ const RULES = [
       'get started|learn more|click here|find out more|discover more|discover what|sign up today'
     ),
     'Generic CTA. Name the action and its object (e.g. "Deploy data-viewer").',
+  ],
+  [
+    'question-hook',
+    'WARN',
+    'marketing',
+    P('\\?["\'*]*\\s*$'),
+    'The post opens with a question. Open with the incident or what the thing does.',
+    { first: true },
   ],
   [
     'introducing-label',
@@ -417,6 +425,10 @@ const rhythm = [];
 for (const t of targets)
   for (const f of files(t)) {
     const units = prose(f);
+    const firstLine = Math.min(
+      ...units.filter(u => u.text.trim() && u.line > 0).map(u => u.line),
+      Infinity
+    );
     const lastLine = Math.max(
       0,
       ...units.filter(u => u.text.trim()).map(u => u.line)
@@ -424,6 +436,7 @@ for (const t of targets)
     for (const { line, text, raw, key } of units)
       for (const [id, severity, , re, message, o = {}] of active) {
         if (o.last && line && line !== lastLine) continue;
+        if (o.first && (!line || line !== firstLine)) continue;
         const subject = o.channel ? raw : text;
         re.lastIndex = 0;
         let m;
