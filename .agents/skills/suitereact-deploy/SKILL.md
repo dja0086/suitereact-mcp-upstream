@@ -20,6 +20,20 @@ npm run deploy:app -- <app-name>
 
 `validate:app` creates a narrow `deploy.override` when missing, builds SDF and the app bundle, rejects embedded local URLs, applies overrides, checks deploy scope, runs SuiteCloud validation, and performs a dry run. `deploy:app` runs validation first, then deploys.
 
+The generated scope depends on the flags, which both commands pass to `deploy/prepare-app-deploy.js`:
+
+| Command                                                   | `deploy.override` contains                                           | Use for                                                |
+| --------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------ |
+| `npm run deploy:app -- <app-name>`                        | `~/FileCabinet/SuiteScripts/apps/<app-name>/*` only                  | Updating an app that is already installed              |
+| `npm run deploy:app -- <app-name> --install`              | the app files and `customscript_sr_sui_<app_id>.xml`                 | First install, or a change to the Suitelet XML         |
+| `npm run deploy:app -- <app-name> --with-center-category` | adds `custcentercategory_suitereact.xml`; writes `manifest.override` | A new app's menu link, or a change to the category XML |
+
+**Redeploying a Suitelet object resets its deployment.** Every `sdf/objects/suitelet/customscript_sr_sui_*.xml` sets `<isdeployed>F</isdeployed>`, `<status>TESTING</status>` and an empty audience. Deploying that object sets the account's deployment back to those values, so a live app stops working until someone re-enables it and sets its audience again. That is why updates deploy files only. After an `--install` deploy, re-enable the deployment and set its audience in NetSuite (Customization > Scripting > Script Deployments).
+
+**The center category links to every app's deployment.** With `--with-center-category`, the generated `manifest.override` lists the other apps' deployments as dependencies, so validation passes without deploying them. Those deployments must already exist in the account.
+
+`deploy.override` and `manifest.override` are reused when they exist. If an existing file differs from the scope the flags ask for, the script warns and leaves it unchanged; run `node deploy/prepare-app-deploy.js <app-name> [flags] --force` to replace it.
+
 Only drop to manual SuiteCloud commands when recovering from validation errors.
 
 During a full-cycle workflow, record validation and deployment after each command:
@@ -155,13 +169,13 @@ If the user wants to deploy specific apps or files (not everything), create a `d
     <path>~/FileCabinet/SuiteScripts/apps/<app-name>/*</path>
   </files>
   <objects>
-    <!-- App suitelet script object -->
+    <!-- Only for a first install or a changed Suitelet XML: it resets the deployment -->
     <path>~/Objects/customscript_sr_sui_<app_id>.xml</path>
-    <!-- App navigation object -->
-    <path>~/Objects/custcentercategory_suitereact.xml</path>
   </objects>
 </deploy>
 ```
+
+Leave out `<objects>` to update an installed app without touching its deployment settings. Add `~/Objects/custcentercategory_suitereact.xml` only when the category XML changed, with the other apps' deployments listed in `manifest.override` (see the table above).
 
 If shared server-side code actually changed, add only those compiled files and corresponding objects:
 
@@ -247,7 +261,7 @@ npm run validate:app -- <app-name>
 
 This runs the supported app-scoped validation pipeline:
 
-1. narrow `deploy.override` creation when missing
+1. narrow `deploy.override` creation when missing (files only, unless `--install` or `--with-center-category` is passed)
 2. SDF and app build
 3. override application
 4. deploy scope checks

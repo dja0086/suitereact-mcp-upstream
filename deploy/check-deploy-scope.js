@@ -62,6 +62,17 @@ for (const path of paths) {
       `Deploy path references a different app (${appPathMatch[1]}) during ${appName} deploy: ${path}`
     );
   }
+
+  // Deploying a Suitelet object resets its deployment to the XML values
+  // (disabled, no audience), so another app's object would switch it off.
+  const suiteletMatch = path.match(
+    /^~\/Objects\/customscript_sr_sui_(.+)\.xml$/
+  );
+  if (suiteletMatch && suiteletMatch[1] !== appName.replace(/-/g, '_')) {
+    addError(
+      `Deploy path includes another app's Suitelet object during ${appName} deploy: ${path}`
+    );
+  }
 }
 
 if (appName) {
