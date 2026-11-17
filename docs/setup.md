@@ -58,9 +58,12 @@ artifacts; it does not install the backend in that account.
 ### Install the shared backend
 
 **A clean account needs a reviewed SDF bootstrap before an app deploy.**
-The generated app-scoped `deploy.override` includes the app and center category;
-it does not enumerate the shared action-handler RESTlet, its modules, or Doc
-Spaces controls. There is currently no one-command clean-account installer.
+By default the generated app-scoped `deploy.override` contains only the app's
+files. `--install` adds the app's Suitelet object, and `--with-center-category`
+adds the SuiteReact center category with a `manifest.override` that lists the
+other apps' deployments as dependencies. None of these enumerate the shared
+action-handler RESTlet, its modules, or Doc Spaces controls. There is currently
+no one-command clean-account installer.
 
 Have the account's SDF maintainer prepare an exact deployment scope for:
 
@@ -78,7 +81,9 @@ command reuses an existing override. Do not deploy the broad root `deploy.xml`
 or assume automatic dependency discovery selects all required shared files.
 
 After reviewing the validation result, deploy the same scope with
-`npm run deploy:app -- data-viewer`. These validation and deployment commands
+`npm run deploy:app -- data-viewer --install`; add `--with-center-category`
+once the other apps' deployments exist in the account. Later updates use
+`npm run deploy:app -- data-viewer` with no flags. These validation and deployment commands
 contact the selected account. For Doc Spaces, complete its native-permission
 and active-guard checks before granting application access.
 
@@ -108,6 +113,10 @@ The Doc Spaces record guard is intentionally active. In NetSuite:
 Use comma-separated internal role IDs. Empty lists deny those action classes.
 For deployed browser access, also enable the chosen app's Suitelet deployment
 and configure its audience. Keep production logging at `ERROR`.
+
+Redeploying a Suitelet object resets its deployment to the XML values: not
+deployed, status Testing, no audience. App updates without `--install` deploy
+files only, so these settings stay as you set them.
 
 ## 3. Run an app against live NetSuite data
 
@@ -343,7 +352,16 @@ their contents into issues, logs, screenshots, or pull requests.
 - **SuiteCloud uses the wrong account:** rerun `suitecloud account:setup` and
   select the intended sandbox before validating again.
 - **Deployment still targets another app:** inspect `deploy.override`; validation
-  intentionally reuses it. Prepare a reviewed override for the desired scope.
+  intentionally reuses it and warns when it differs from the generated scope.
+  Prepare a reviewed override for the desired scope, or regenerate it with
+  `node deploy/prepare-app-deploy.js <app-name> --force`.
+- **An app stopped working after a deploy:** the deploy included its Suitelet
+  object, which resets the deployment to not deployed, Testing, and no
+  audience. Re-enable it and set its audience in NetSuite.
+- **Validation fails on `custcentercategory_suitereact`** with "The object
+  reference ... is missing in the project": the category links to every app.
+  Deploy updates without `--with-center-category`, or use the flag so the
+  generated `manifest.override` lists the other deployments.
 - **Browser tests cannot find Chromium:** run `npx playwright install chromium`.
 - **An older skill still runs:** check its resolved file path and refresh all
   companion skills; an existing copied directory is skipped by `link-skills.sh`.

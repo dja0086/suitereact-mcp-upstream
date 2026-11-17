@@ -76,6 +76,8 @@ Add a `<link>` entry to `sdf/objects/centerCategory/custcentercategory_suitereac
 
 Keep links in alphabetical order by `linklabel`.
 
+The first deploy of a new app needs its Suitelet object and the updated category: `npm run deploy:app -- <app-name> --install --with-center-category`. Later deploys need no flags.
+
 ## Post-create
 
 For live local development, copy `example.env` to `.env.development.local`. Production validation rejects compiled bundles containing loopback URLs.

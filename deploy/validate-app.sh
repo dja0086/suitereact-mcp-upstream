@@ -40,11 +40,23 @@ run_command() {
 
 if [ -z "${1:-}" ]; then
   log_error "App name is required"
-  echo "Usage: npm run validate:app -- <app-name>"
+  echo "Usage: npm run validate:app -- <app-name> [--install] [--with-center-category]"
   exit 1
 fi
 
 APP_NAME="$1"
+shift
+PREPARE_FLAGS=""
+for flag in "$@"; do
+  case "$flag" in
+    --install | --with-center-category) PREPARE_FLAGS="$PREPARE_FLAGS $flag" ;;
+    *)
+      log_error "Unknown option: $flag"
+      echo "Usage: npm run validate:app -- <app-name> [--install] [--with-center-category]"
+      exit 1
+      ;;
+  esac
+done
 
 if [ ! -d "apps/$APP_NAME" ]; then
   log_error "App directory does not exist: apps/$APP_NAME"
@@ -56,7 +68,7 @@ echo -e "${BOLD}=========================\n${NC}"
 log_info "App: ${BOLD}$APP_NAME${NC}"
 
 log_step "1/8" "Preparing scoped deploy override"
-run_command "node deploy/prepare-app-deploy.js '$APP_NAME' --if-missing" "Ensuring deploy.override exists"
+run_command "node deploy/prepare-app-deploy.js '$APP_NAME'$PREPARE_FLAGS --if-missing" "Ensuring deploy.override exists"
 
 log_step "2/8" "Building SDF artifacts"
 run_command "npm run delete:dist" "Cleaning dist"
